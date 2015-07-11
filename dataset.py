@@ -14,7 +14,6 @@ class Dataset(object):
     def generate(self):
         if self.finalized:
             data_func_dir = DATA_DIR + '/' + self.func.__name__ + self._stringify_kwargs()
-            print(data_func_dir)
             if not os.path.exists(data_func_dir):
                 os.mkdir(data_func_dir)
             if all([os.path.exists(data_func_dir + '/' + dataset) for dataset in ['X_train.pkl', 'y_train.pkl', 'X_test.pkl']]):

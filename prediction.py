@@ -13,13 +13,14 @@ from utils import md5, touch, normalized_gini, \
 
 class Prediction(object):
 
-    '''Prediction object for Crowdflower Search Results Relevance.
+    '''Prediction object for Liberty Insurance Competition.
     '''
 
     def __init__(self, dataset, model, save=True):
         self.dataset = dataset
         self.model = model
         self.save = save
+        self.save_path = self._generate_filename()
         self.oof_predictions = None
         self.oof_gini = None
         self.lb_predictions = None
@@ -41,6 +42,9 @@ class Prediction(object):
 
     def _get_model_name(self):
         return self.model.__class__.__name__
+
+    def _get_dataset_func_name(self):
+        return self.dataset.__name__
 
     def _hash_model_params(self):
         params = self._extract_model_parameters()
@@ -78,13 +82,17 @@ class Prediction(object):
 
     def cross_validate(self):
         if self.save is True:
-            save_path = self._generate_filename()
-            if os.path.exists(save_path):
-                print 'Model %s exists. Skipping ..' % save_path
-                return
+            if os.path.exists(self.save_path):
+                try:
+                    pred = pickle.load(open(self.save_path, 'rb'))
+                    oof_gini = pred['normalized_gini']
+                    print '`%s` exists. CV: %s' % (self.save_path.split('/')[-1], str(np.round(oof_gini, 4)))
+                    return
+                except EOFError:
+                    pass
 
             # reserve the filename
-            touch(save_path)
+            touch(self.save_path)
 
         X_train, y_train, X_test = self._load_data()
         train_n = X_train.shape[0]
@@ -131,12 +139,13 @@ class Prediction(object):
                 'normalized_gini_cv': cv_scores,
                 'model_params': self._extract_model_parameters(),
                 'model_name': self._get_model_name(),
+                'dataset_func': self._get_dataset_func_name(),
                 'dataset_params': self.dataset.kwargs
             }
-            pickle.dump(to_save, open(save_path, 'wb'))
+            pickle.dump(to_save, open(self.save_path, 'wb'))
 
     def create_submission(self, file_name):
-        path = SUBMISSION_PATH + '/{}_{}.csv'.format(file_name, str(np.round(self.oof_gini, 2)))
+        path = SUBMISSION_PATH + '/{}_{}.csv'.format(file_name, str(np.round(self.oof_gini, 3)))
         sub = pd.read_csv(DATA_DIR + '/sample_submission.csv', index_col='Id')
         sub['Hazard'] = self.lb_predictions
         sub.to_csv(path, index='Id')

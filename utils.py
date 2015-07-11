@@ -1,5 +1,7 @@
-import os
 import hashlib
+import pickle
+from pprint import pprint
+import os
 
 import numpy as np
 import pandas as pd
@@ -32,6 +34,16 @@ def load_data():
 def touch(fname, times=None):
     with open(fname, 'a'):
         os.utime(fname, times)
+
+
+def print_prediction_metadata(path):
+    pred = pickle.load(open(PREDICTION_PATH + '/' + path, 'rb'))
+    print 'Dataset func: {}'.format(pred['dataset_func'])
+    print 'Dataset func params: {}'.format(pred['dataset_params'])
+    print 'Model name: {}'.format(pred['model_name'])
+    print 'Model params: {}'.format(pprint(pred['model_params']))
+    print 'CV: {}\n'.format(np.round(pred['normalized_gini'], 4))
+    return
 
 
 def gini(y_true, y_pred):

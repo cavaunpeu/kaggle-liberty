@@ -1,3 +1,4 @@
+import glob
 import hashlib
 import pickle
 from pprint import pprint
@@ -36,13 +37,22 @@ def touch(fname, times=None):
         os.utime(fname, times)
 
 
-def print_prediction_metadata(path):
-    pred = pickle.load(open(PREDICTION_PATH + '/' + path, 'rb'))
-    print 'Dataset func: {}'.format(pred['dataset_func'])
-    print 'Dataset func params: {}'.format(pred['dataset_params'])
-    print 'Model name: {}'.format(pred['model_name'])
-    print 'Model params: {}'.format(pprint(pred['model_params']))
-    print 'CV: {}\n'.format(np.round(pred['normalized_gini'], 4))
+def print_prediction_metadata(path=None):
+    if path:
+        pred = pickle.load(open(PREDICTION_PATH + '/' + path, 'rb'))
+        print 'Dataset func: {}'.format(pred['dataset_func'])
+        print 'Dataset func params: {}'.format(pred['dataset_params'])
+        print 'Model name: {}'.format(pred['model_name'])
+        print 'Model params: {}'.format(pprint(pred['model_params']))
+        print 'CV: {}\n'.format(np.round(pred['normalized_gini'], 4))
+    else:
+        for p in glob.glob(PREDICTION_PATH + '/*'):
+            try:
+                pred = pickle.load(open(p, 'rb'))
+                oof_gini = pred['normalized_gini']
+                print '`%s` | CV: %s' % (p.split('/')[-1], str(np.round(oof_gini, 4)))
+            except EOFError:
+                continue
     return
 
 

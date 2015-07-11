@@ -1,12 +1,14 @@
 import os
 import pickle
+from types import FunctionType
 
 import numpy as np
 import pandas as pd
-from sklearn.cross_validation import KFold, StratifiedKFold
-from types import FunctionType
+from sklearn.cross_validation import KFold
+
 
 from dataset import Dataset
+from target_transform import *
 from utils import md5, touch, normalized_gini, \
     PREDICTION_PATH, SUBMISSION_PATH, DATA_DIR
 
@@ -16,9 +18,10 @@ class Prediction(object):
     '''Prediction object for Liberty Insurance Competition.
     '''
 
-    def __init__(self, dataset, model, save=True):
+    def __init__(self, dataset, model, target_transform=BaseTargetTransform, save=True):
         self.dataset = dataset
         self.model = model
+        self.target_transform = target_transform
         self.save = save
         self.save_path = self._generate_filename()
         self.oof_predictions = None
@@ -44,7 +47,10 @@ class Prediction(object):
         return self.model.__class__.__name__
 
     def _get_dataset_func_name(self):
-        return self.dataset.__name__
+        return self.dataset.func.__name__
+
+    def _get_target_transform_name(self):
+        return self.target_transform.__name__
 
     def _hash_model_params(self):
         params = self._extract_model_parameters()
@@ -64,20 +70,18 @@ class Prediction(object):
             else:
                 ret.append(str(k) + '_' + str(v))
 
-        if len(ret) == 0:
-            return ''
-        else:
-            return md5(''.join(ret))
+        return md5(''.join(ret))
 
     def _generate_filename(self):
         filename_args = {
             'dataset_func': self.dataset.func.__name__,
             'hashed_func_kwargs': self._hash_function_kwargs(self.dataset.kwargs),
             'model_name': self._get_model_name(),
-            'hashed_model_params': self._hash_model_params()
+            'hashed_model_params': self._hash_model_params(),
+            'target_transform_name': self._get_target_transform_name()
         }
 
-        filename = '%(dataset_func)s_%(hashed_func_kwargs)s%(model_name)s_%(hashed_model_params)s.pkl' % filename_args
+        filename = '%(dataset_func)s_%(hashed_func_kwargs)s_%(model_name)s_%(hashed_model_params)s_%(target_transform_name)s.pkl' % filename_args
         return os.path.join(PREDICTION_PATH, filename)
 
     def cross_validate(self):
@@ -107,10 +111,12 @@ class Prediction(object):
         for fold, (tr_idx, te_idx) in enumerate(cv):
 
             X_train_ = X_train.iloc[tr_idx]
-            y_train_ = y_train.iloc[tr_idx]
+            y_train_ = self.target_transform.transform(y_train.iloc[tr_idx])
 
             self.model.fit(X_train_, y_train_)
-            preds_k = self.model.predict(X_train.iloc[te_idx])
+            preds_k = self.target_transform.transform_back(
+                self.model.predict(X_train.iloc[te_idx])
+            )
             oof_predictions[te_idx] = preds_k
 
             gini_k = normalized_gini(y_train.iloc[te_idx], preds_k)
@@ -126,8 +132,8 @@ class Prediction(object):
         index = ['train']*train_n + ['test']*test_n
         predictions = pd.DataFrame(np.zeros(shape=(n,)), index=index)
 
-        self.model.fit(X_train, y_train)
-        lb_predictions = self.model.predict(X_test)
+        self.model.fit(X_train, self.target_transform.transform(y_train))
+        lb_predictions = self.target_transform.transform_back(self.model.predict(X_test))
         self.lb_predictions = lb_predictions
 
         # save
@@ -140,7 +146,8 @@ class Prediction(object):
                 'model_params': self._extract_model_parameters(),
                 'model_name': self._get_model_name(),
                 'dataset_func': self._get_dataset_func_name(),
-                'dataset_params': self.dataset.kwargs
+                'dataset_params': self.dataset.kwargs,
+                'target_transform': self._get_target_transform_name()
             }
             pickle.dump(to_save, open(self.save_path, 'wb'))
 

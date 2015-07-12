@@ -34,7 +34,7 @@ class Ensemble(object):
             y_true=Y_TRAIN,
             w_init=np.array(self.oof_ginis)**0.5,
             verbose=self.verbose
-        )
+        )['x']
 
         # ensemble oof predictions
         self.ensembled_oof_predictions_ = _ensemble_predictions(

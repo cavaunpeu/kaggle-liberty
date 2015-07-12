@@ -79,7 +79,7 @@ class Prediction(object):
         filename = '%(dataset_func)s_%(hashed_func_kwargs)s_%(model_name)s_%(hashed_model_params)s_%(target_transform_name)s.pkl' % filename_args
         return os.path.join(base_path, filename)
 
-    def _generate_oof_predictions(self, X_train, y_train):
+    def _generate_oof_predictions(self, X_train, y_train, feature_selection_func=None, **kwargs):
         train_n = X_train.shape[0]
         cv = KFold(n=train_n, n_folds=10, random_state=123)
         cv_scores = []
@@ -113,7 +113,7 @@ class Prediction(object):
         lb_predictions = self.target_transform.transform_back(self.model.predict(X_test))
         return lb_predictions
 
-    def cross_validate(self):
+    def cross_validate(self, feature_selection_func=None, **kwargs):
         if self.save is True:
             if os.path.exists(self.save_path):
                 try:

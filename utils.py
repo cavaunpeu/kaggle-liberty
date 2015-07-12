@@ -113,12 +113,12 @@ def find_ensemble_weights(opt_func, predictions, y_true, w_init=None, verbose=Tr
         ensembled_oof_gini = normalized_gini(y_true, ensembled_predictions)
         return -ensembled_oof_gini
 
-    # def equality_constraint(weights):
-    #     return sum(weights) - 1
+    def equality_constraint(weights):
+        return sum(weights) - 1
 
     if w_init is None:
         w_init = [0.01]*len(predictions)
 
-    # return opt_func(normalized_gini_func, w_init, constraints={'type':'eq', 'fun': equality_constraint})
-    return opt_func(normalized_gini_func, w_init)
+    return opt_func(normalized_gini_func, w_init, constraints={'type':'eq', 'fun': equality_constraint})
+    # return opt_func(normalized_gini_func, w_init)
 

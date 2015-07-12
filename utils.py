@@ -69,3 +69,6 @@ def gini(y_true, y_pred):
 def normalized_gini(y_true, y_pred):
     normalized_gini = gini(y_true, y_pred)/gini(y_true, y_true)
     return normalized_gini
+
+def find_ensemble_weights():
+    pass

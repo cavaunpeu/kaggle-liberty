@@ -23,9 +23,6 @@ class Prediction(object):
         self.target_transform = target_transform
         self.save = save
         self.save_path = self._generate_filename(base_path)
-        self.oof_predictions = None
-        self.oof_gini = None
-        self.lb_predictions = None
 
     def _load_data(self):
         X_train, y_train, X_test = self.dataset.generate()
@@ -82,29 +79,8 @@ class Prediction(object):
         filename = '%(dataset_func)s_%(hashed_func_kwargs)s_%(model_name)s_%(hashed_model_params)s_%(target_transform_name)s.pkl' % filename_args
         return os.path.join(base_path, filename)
 
-    def cross_validate(self):
-        if self.save is True:
-            if os.path.exists(self.save_path):
-                try:
-                    pred = pickle.load(open(self.save_path, 'rb'))
-                    oof_gini = pred['normalized_gini']
-                    print '`{}` exists. CV: {}'.format(
-                        self.save_path.split('/')[-1],
-                        np.round(oof_gini, 4)
-                    )
-                    return
-                except EOFError:
-                    pass
-
-            # reserve the filename
-            touch(self.save_path)
-
-        X_train, y_train, X_test = self._load_data()
+    def _generate_oof_predictions(self, X_train, y_train):
         train_n = X_train.shape[0]
-        test_n = X_test.shape[0]
-        n = train_n + test_n
-
-        # create oof predictions
         cv = KFold(n=train_n, n_folds=10, random_state=123)
         cv_scores = []
 
@@ -126,16 +102,37 @@ class Prediction(object):
 
         oof_gini = normalized_gini(y_train, oof_predictions)
         print 'Final: %.4f' % (oof_gini)
-        self.oof_predictions = oof_predictions
-        self.oof_gini = oof_gini
+        return oof_predictions, oof_gini, cv_scores
 
-        # fit model on all data, create leaderboard predictions
+    def _generate_lb_predictions(self, X_train, y_train, X_test):
+        train_n, test_n = X_train.shape[0], X_test.shape[0]
         index = ['train']*train_n + ['test']*test_n
-        predictions = pd.DataFrame(np.zeros(shape=(n,)), index=index)
+        predictions = pd.DataFrame(np.zeros(shape=(train_n + test_n,)), index=index)
 
         self.model.fit(X_train, self.target_transform.transform(y_train))
         lb_predictions = self.target_transform.transform_back(self.model.predict(X_test))
-        self.lb_predictions = lb_predictions
+        return lb_predictions
+
+    def cross_validate(self):
+        if self.save is True:
+            if os.path.exists(self.save_path):
+                try:
+                    pred = pickle.load(open(self.save_path, 'rb'))
+                    oof_gini = pred['normalized_gini']
+                    print '`{}` exists. CV: {}'.format(
+                        self.save_path.split('/')[-1],
+                        np.round(oof_gini, 4)
+                    )
+                    return
+                except EOFError:
+                    pass
+
+            # reserve the filename
+            touch(self.save_path)
+
+        X_train, y_train, X_test = self._load_data()
+        oof_predictions, oof_gini, cv_scores = self._generate_oof_predictions(X_train, y_train)
+        lb_predictions = self._generate_lb_predictions(X_train, y_train, X_test)
 
         # save
         if self.save is True:

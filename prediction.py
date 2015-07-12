@@ -9,8 +9,7 @@ from sklearn.cross_validation import KFold
 
 from dataset import Dataset
 from target_transform import *
-from utils import md5, touch, normalized_gini, \
-    PREDICTION_PATH, SUBMISSION_PATH, DATA_DIR
+from utils import md5, touch, normalized_gini
 
 
 class Prediction(object):
@@ -18,12 +17,12 @@ class Prediction(object):
     '''Prediction object for Liberty Insurance Competition.
     '''
 
-    def __init__(self, dataset, model, target_transform=BaseTargetTransform, save=True):
+    def __init__(self, dataset, model, base_path, target_transform=BaseTargetTransform, save=True):
         self.dataset = dataset
         self.model = model
         self.target_transform = target_transform
         self.save = save
-        self.save_path = self._generate_filename()
+        self.save_path = self._generate_filename(base_path)
         self.oof_predictions = None
         self.oof_gini = None
         self.lb_predictions = None
@@ -57,10 +56,9 @@ class Prediction(object):
         params_str = ' '.join(['%s=%s' % (k, v) for k, v in params.items()])
         return md5(params_str)
 
-    @staticmethod
-    def _hash_function_kwargs(kwargs):
+    def _hash_function_kwargs(self):
         ret = []
-        for k, v in kwargs.iteritems():
+        for k, v in self.dataset.kwargs.iteritems():
             if type(v) == FunctionType:
                 ret.append(str(k) + '_' + v.__name__)
             elif hasattr(v, '__name__'):
@@ -72,17 +70,17 @@ class Prediction(object):
 
         return md5(''.join(ret))
 
-    def _generate_filename(self):
+    def _generate_filename(self, base_path):
         filename_args = {
-            'dataset_func': self.dataset.func.__name__,
-            'hashed_func_kwargs': self._hash_function_kwargs(self.dataset.kwargs),
+            'dataset_func': self._get_dataset_func_name(),
+            'hashed_func_kwargs': self._hash_function_kwargs(),
             'model_name': self._get_model_name(),
             'hashed_model_params': self._hash_model_params(),
             'target_transform_name': self._get_target_transform_name()
         }
 
         filename = '%(dataset_func)s_%(hashed_func_kwargs)s_%(model_name)s_%(hashed_model_params)s_%(target_transform_name)s.pkl' % filename_args
-        return os.path.join(PREDICTION_PATH, filename)
+        return os.path.join(base_path, filename)
 
     def cross_validate(self):
         if self.save is True:
@@ -90,7 +88,10 @@ class Prediction(object):
                 try:
                     pred = pickle.load(open(self.save_path, 'rb'))
                     oof_gini = pred['normalized_gini']
-                    print '`%s` exists. CV: %s' % (self.save_path.split('/')[-1], str(np.round(oof_gini, 4)))
+                    print '`{}` exists. CV: {}'.format(
+                        self.save_path.split('/')[-1],
+                        np.round(oof_gini, 4)
+                    )
                     return
                 except EOFError:
                     pass
@@ -150,9 +151,3 @@ class Prediction(object):
                 'target_transform': self._get_target_transform_name()
             }
             pickle.dump(to_save, open(self.save_path, 'wb'))
-
-    def create_submission(self, file_name):
-        path = SUBMISSION_PATH + '/{}_{}.csv'.format(file_name, str(np.round(self.oof_gini, 3)))
-        sub = pd.read_csv(DATA_DIR + '/sample_submission.csv', index_col='Id')
-        sub['Hazard'] = self.lb_predictions
-        sub.to_csv(path, index='Id')

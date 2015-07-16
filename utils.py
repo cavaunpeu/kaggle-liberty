@@ -44,6 +44,9 @@ def print_prediction_metadata(path=None):
         print 'Dataset func params: {}'.format(pred['dataset_params'])
         print 'Model name: {}'.format(pred['model_name'])
         print 'Model params: {}'.format(pprint(pred['model_params']))
+        print 'Target transform: {}'.format(pred['target_transform'])
+        print 'Feature selector: {}'.format(pred['feature_selector'])
+        print 'Feature selector params: {}'.format(pred['feature_selector_params'])
         print 'CV: {}\n'.format(np.round(pred['normalized_gini'], 4))
     else:
         for p in glob.glob(PREDICTION_PATH + '/*'):

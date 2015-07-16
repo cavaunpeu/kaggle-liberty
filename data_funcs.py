@@ -56,3 +56,13 @@ def data_v4():
             test_col=X_test[col]
         )
     return X_train, y_train, X_test
+
+
+def data_v5():
+    X, y_train = load_data()
+    X = pd.get_dummies(X)
+    X.drop(['T2_V10', 'T2_V7', 'T1_V13', 'T1_V10'], axis=1, inplace=True)
+
+    is_train_obs = X.index.get_level_values('obs_type') == 'train'
+    X_train, X_test = X[is_train_obs], X[~is_train_obs]
+    return X_train, y_train, X_test

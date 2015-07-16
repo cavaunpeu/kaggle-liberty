@@ -1,3 +1,5 @@
+import abc
+from datetime import datetime
 import glob
 import pickle
 import sys
@@ -11,7 +13,30 @@ from utils import load_predictions_with_cutoff, normalized_gini, find_ensemble_w
     _ensemble_predictions
 
 
-class Ensemble(object):
+class BaseEnsemble(object):
+
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self):
+        self.ensembled_oof_predictions_ = None
+        self.ensembled_oof_gini_ = None
+        self.ensembled_lb_predictions_ = None
+
+    @abc.abstractmethod
+    def ensemble_predictions():
+        return
+
+    def create_submission(self, sub_path):
+        sub = pd.read_csv(DATA_DIR + '/sample_submission.csv', index_col='Id')
+        sub_path = SUBMISSION_PATH + '/' + sub_path.replace('.csv', '')
+        current_datetime = datetime.now().strftime('%Y%m%d%H%M')
+        gini_str = str(np.round(self.ensembled_oof_gini_, 6))
+        sub_path += '_{}_CV_{}.csv'.format(current_datetime, gini_str)
+        sub['Hazard'] = self.ensembled_lb_predictions_.values
+        sub.to_csv(sub_path, index='Id')
+
+
+class WeightedEnsemble(BaseEnsemble):
 
     def __init__(self, base_path, opt_func=fmin_powell, cutoff=.38, include=[], verbose=True):
         self.opt_func = opt_func
@@ -22,9 +47,6 @@ class Ensemble(object):
         self.oof_predictions, self.lb_predictions, self.oof_ginis = load_predictions_with_cutoff(
             base_path, cutoff, include)
         self.opt_weights = None
-        self.ensembled_oof_predictions_ = None
-        self.ensembled_oof_gini_ = None
-        self.ensembled_lb_predictions_ = None
 
     def ensemble_predictions(self):
         # find optimal weights
@@ -53,9 +75,24 @@ class Ensemble(object):
             ensemble_weights=self.opt_weights
         )
 
-    def create_submission(self, sub_path):
-        sub = pd.read_csv(DATA_DIR + '/sample_submission.csv', index_col='Id')
-        sub_path = SUBMISSION_PATH + '/' + sub_path.replace('.csv', '')
-        sub_path += '_CV_{}_.csv'.format(str(np.round(self.ensembled_oof_gini_, 6)))
-        sub['Hazard'] = self.ensembled_lb_predictions_
-        sub.to_csv(sub_path, index='Id')
+
+class FunctionalEnsemble(BaseEnsemble):
+
+    def __init__(self, base_path, ensemble_func, cutoff=.38, include=[], verbose=True):
+        self.ensemble_func = ensemble_func
+        self.base_path = base_path
+        self.cutoff = cutoff
+        self.include = include
+        self.verbose = verbose
+        self.oof_predictions, self.lb_predictions, self.oof_ginis = load_predictions_with_cutoff(
+            base_path, cutoff, include)
+
+    def ensemble_predictions(self):
+        # ensemble oof predictions
+        self.ensembled_oof_predictions_ = self.oof_predictions.apply(self.ensemble_func, axis=1)
+        self.ensembled_oof_gini_ = normalized_gini(Y_TRAIN, self.ensembled_oof_predictions_)
+        if self.verbose:
+            print '\nEnsembled CV: {}\n'.format(np.round(self.ensembled_oof_gini_, 6))
+
+        # ensemble lb predictions
+        self.ensembled_lb_predictions_ = self.lb_predictions.apply(self.ensemble_func, axis=1)

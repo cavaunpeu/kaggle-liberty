@@ -20,11 +20,11 @@ class Prediction(object):
     '''
 
     def __init__(self, dataset, model, base_path, target_transform=BaseTargetTransform,
-            feature_selector=BaseFeatureSelector(), save=True):
+            feature_selector=BaseFeatureSelector, save=True):
         self.dataset = dataset
         self.model = model
         self.target_transform = target_transform
-        self.feature_selector = feature_selector
+        self.feature_selector = feature_selector()
         self.save = save
         self.save_path = self._generate_filename(base_path)
 

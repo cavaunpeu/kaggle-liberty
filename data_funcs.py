@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.preprocessing import scale
 
 from kaggle_tools.features import encode_with_observation_counts, encode_with_leave_one_out
-from utils import load_data
+from utils import load_data, load_predictions_with_cutoff, PREDICTION_PATH
 
 
 def data_v1():
@@ -66,3 +66,11 @@ def data_v5():
     is_train_obs = X.index.get_level_values('obs_type') == 'train'
     X_train, X_test = X[is_train_obs], X[~is_train_obs]
     return X_train, y_train, X_test
+
+
+def stacker_data_v1(cutoff):
+    X, y_train = load_data()
+    oof_predictions, lb_predictions, oof_ginis = load_predictions_with_cutoff(PREDICTION_PATH, cutoff)
+    X_train, X_test = oof_predictions, lb_predictions
+    return X_train, y_train, X_test
+

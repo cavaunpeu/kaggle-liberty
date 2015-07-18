@@ -7,11 +7,9 @@ from utils import normalized_gini
 
 class BaseFeatureSelector(object):
 
-    selected_features = []
-    current_features = []
-
     def __init__(self):
-        return
+        self.selected_features = []
+        self.current_features = []
 
     def fit(self, X, y):
         self.current_features = X.columns

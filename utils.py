@@ -12,6 +12,7 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 TRAIN_PATH = DATA_DIR + '/train.csv'
 TEST_PATH = DATA_DIR + '/test.csv'
 PREDICTION_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'predictions')
+STACKER_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stackers')
 SUBMISSION_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'submissions')
 Y_TRAIN = pd.read_csv(TRAIN_PATH)['Hazard'].values
 

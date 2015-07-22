@@ -68,6 +68,25 @@ def data_v5():
     return X_train, y_train, X_test
 
 
+def data_v6():
+    X, y_train = load_data()
+    is_train_obs = X.index.get_level_values('obs_type') == 'train'
+    X_train, X_test = X[is_train_obs], X[~is_train_obs]
+
+    category_cols = [col for col in X.columns if X[col].dtype == 'O']
+    for col in category_cols:
+        X_train[col], X_test[col] = encode_with_leave_one_out(
+            train_col=X_train[col],
+            y=y_train,
+            test_col=X_test[col]
+        )
+
+    cols_to_drop = ['T2_V10', 'T2_V7', 'T1_V13', 'T1_V10']
+    X_train.drop(['T2_V10', 'T2_V7', 'T1_V13', 'T1_V10'], axis=1, inplace=True)
+    X_test.drop(['T2_V10', 'T2_V7', 'T1_V13', 'T1_V10'], axis=1, inplace=True)
+    return X_train, y_train, X_test
+
+
 def stacker_data_v1(cutoff):
     X, y_train = load_data()
     oof_predictions, lb_predictions, oof_ginis = load_predictions_with_cutoff(PREDICTION_PATH, cutoff)

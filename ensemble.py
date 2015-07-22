@@ -17,10 +17,9 @@ class BaseEnsemble(object):
 
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self):
-        self.ensembled_oof_predictions_ = None
-        self.ensembled_oof_gini_ = None
-        self.ensembled_lb_predictions_ = None
+    ensembled_oof_predictions_ = None
+    ensembled_oof_gini_ = None
+    ensembled_lb_predictions_ = None
 
     @abc.abstractmethod
     def ensemble_predictions():
@@ -38,14 +37,20 @@ class BaseEnsemble(object):
 
 class WeightedEnsemble(BaseEnsemble):
 
-    def __init__(self, base_path, opt_func=fmin_powell, cutoff=.38, include=[], verbose=True):
+    def __init__(self, base_path, opt_func=fmin_powell, cutoff=.38, column_picker_func=None,
+            include=[], verbose=True, **kwargs):
         self.opt_func = opt_func
         self.base_path = base_path
         self.cutoff = cutoff
         self.include = include
         self.verbose = verbose
+        self.kwargs = kwargs
         self.oof_predictions, self.lb_predictions, self.oof_ginis = load_predictions_with_cutoff(
             base_path, cutoff, include)
+        if column_picker_func is not None:
+            new_cols = column_picker_func(self.oof_predictions)
+            self.oof_predictions = self.oof_predictions[new_cols]
+            self.lb_predictions = self.lb_predictions[new_cols]
         self.opt_weights = None
 
     def ensemble_predictions(self):
@@ -55,7 +60,8 @@ class WeightedEnsemble(BaseEnsemble):
             predictions=self.oof_predictions,
             y_true=Y_TRAIN,
             w_init=np.array(self.oof_ginis)**0.5,
-            verbose=self.verbose
+            verbose=self.verbose,
+            **self.kwargs
         )['x']
 
         # ensemble oof predictions
@@ -78,7 +84,8 @@ class WeightedEnsemble(BaseEnsemble):
 
 class FunctionalEnsemble(BaseEnsemble):
 
-    def __init__(self, base_path, ensemble_func, cutoff=.38, include=[], verbose=True):
+    def __init__(self, base_path, ensemble_func, cutoff=.38, column_picker_func=None,
+            include=[], verbose=True, **column_picker_kwargs):
         self.ensemble_func = ensemble_func
         self.base_path = base_path
         self.cutoff = cutoff
@@ -86,6 +93,10 @@ class FunctionalEnsemble(BaseEnsemble):
         self.verbose = verbose
         self.oof_predictions, self.lb_predictions, self.oof_ginis = load_predictions_with_cutoff(
             base_path, cutoff, include)
+        if column_picker_func is not None:
+            new_cols = column_picker_func(self.oof_predictions, **column_picker_kwargs)
+            self.oof_predictions = self.oof_predictions[new_cols]
+            self.lb_predictions = self.lb_predictions[new_cols]
 
     def ensemble_predictions(self):
         # ensemble oof predictions

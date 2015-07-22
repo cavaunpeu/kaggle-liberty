@@ -104,25 +104,29 @@ def load_predictions_with_cutoff(base_path, cutoff, include=[], verbose=True):
 
     return oof_predictions, lb_predictions, oof_ginis
 
+
 def _ensemble_predictions(predictions, ensemble_weights):
     ensembled_predictions = np.zeros(shape=(predictions.shape[0],))
     for w, pred_col in zip(ensemble_weights, predictions.columns):
         ensembled_predictions += w*predictions[pred_col]
     return ensembled_predictions
 
-def find_ensemble_weights(opt_func, predictions, y_true, w_init=None, verbose=True):
+
+def find_ensemble_weights(opt_func, predictions, y_true, w_init=None, verbose=True, **kwargs):
 
     def normalized_gini_func(weights):
         ensembled_predictions = _ensemble_predictions(predictions, weights)
         ensembled_oof_gini = normalized_gini(y_true, ensembled_predictions)
         return -ensembled_oof_gini
 
-    def equality_constraint(weights):
-        return sum(weights) - 1
-
     if w_init is None:
         w_init = [0.01]*len(predictions)
 
-    return opt_func(normalized_gini_func, w_init, constraints={'type':'eq', 'fun': equality_constraint})
-    # return opt_func(normalized_gini_func, w_init)
+    return opt_func(normalized_gini_func, w_init, **kwargs)
 
+
+def least_correlated_cols(df, num_cols):
+    corr = df.corr()
+    sum_corrs = corr.apply(lambda x: sum(x), axis=1)
+    least_corr_cols = sum_corrs.order()[:num_cols].index.tolist()
+    return least_corr_cols

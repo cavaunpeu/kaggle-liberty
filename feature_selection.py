@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
@@ -75,3 +77,20 @@ class BottomKPercentileVarianceFeatureSelector(BaseFeatureSelector):
         min_index_to_select = int((1-self.bottom_k_percentile)*len(sum_abs_corrs))
         self.current_features = list(sum_abs_corrs.index[min_index_to_select:])
         self.selected_features += self.current_features
+
+
+# class RandomShuffleFeatureSelector(BaseFeatureSelector):
+
+#     def __init__(self, model):
+#         self.model = model
+#         super(RandomShuffleFeatureSelector, self).__init__()
+
+#     def fit(self, X, y):
+#         idx = X.index
+#         cv_scores = []
+#         for col in X.columns:
+#             X_ = X.copy()
+#             random.shuffle(idx)
+#             X_[col] = X[col][idx]
+#             model.fit(X_, y)
+

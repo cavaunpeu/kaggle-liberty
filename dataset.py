@@ -31,13 +31,17 @@ class Dataset(object):
 
         return X_train, y_train, X_test
 
-    def _stringify_kwargs(self):
+    @property
+    def stringified_kwargs(self):
         ret = ''
-        for k, v in self.kwargs.iteritems():
-            if hasattr(v, '__name__'):
-                ret += '_' + str(k) + '_' + v.__name__ + '_' + str(v)
+        for k, v in self.dataset.kwargs.iteritems():
+            if type(v) == FunctionType:
+                ret.append(str(k) + '_' + v.__name__)
+            elif hasattr(v, '__name__'):
+                ret.append(str(k) + '_' + v.__name__ + '_' + str(v))
             elif hasattr(v.__class__, '__name__'):
-                ret += '_' + (str(k) + '_' + v.__class__.__name__ + '_' + str(v))
+                ret.append(str(k) + '_' + v.__class__.__name__ + '_' + str(v))
             else:
-                ret += '_' + append(str(k) + '_' + str(v))
-        return ret
+                ret.append(str(k) + '_' + str(v))
+
+        return '_'.join(ret)

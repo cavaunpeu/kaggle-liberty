@@ -2,7 +2,9 @@ import pandas as pd
 from sklearn.preprocessing import scale
 
 from kaggle_tools.features import encode_with_observation_counts, encode_with_leave_one_out
-from utils import load_data, load_predictions_with_cutoff, PREDICTION_PATH
+from utils import load_data, load_predictions_with_cutoff, PREDICTION_PATH, \
+    least_correlated_cols
+
 
 
 def data_v1():
@@ -92,4 +94,13 @@ def stacker_data_v1(cutoff):
     oof_predictions, lb_predictions, oof_ginis = load_predictions_with_cutoff(PREDICTION_PATH, cutoff)
     X_train, X_test = oof_predictions, lb_predictions
     return X_train, y_train, X_test
+
+def stacker_data_v2(cutoff, num_least_correlated_cols):
+    X, y_train = load_data()
+    oof_predictions, lb_predictions, oof_ginis = load_predictions_with_cutoff(PREDICTION_PATH, cutoff)
+    X_train, X_test = oof_predictions, lb_predictions
+    new_cols = least_correlated_cols(X_train, num_least_correlated_cols)
+    X_train, X_test = X_train[new_cols], X_test[new_cols]
+    return X_train, y_train, X_test
+
 

@@ -13,7 +13,7 @@ class Dataset(object):
 
     def generate(self):
         if self.finalized:
-            data_func_dir = DATA_DIR + '/' + self.func.__name__ + self._stringify_kwargs()
+            data_func_dir = DATA_DIR + '/' + self.func.__name__ + self.stringified_kwargs
             if not os.path.exists(data_func_dir):
                 os.mkdir(data_func_dir)
             if all([os.path.exists(data_func_dir + '/' + dataset) for dataset in ['X_train.pkl', 'y_train.pkl', 'X_test.pkl']]):
@@ -34,7 +34,7 @@ class Dataset(object):
     @property
     def stringified_kwargs(self):
         ret = ''
-        for k, v in self.dataset.kwargs.iteritems():
+        for k, v in self.kwargs.iteritems():
             if type(v) == FunctionType:
                 ret.append(str(k) + '_' + v.__name__)
             elif hasattr(v, '__name__'):

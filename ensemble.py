@@ -38,16 +38,16 @@ class BaseEnsemble(object):
 class WeightedEnsemble(BaseEnsemble):
     '''Example usage:
 
-        def equality_constraint(weights):
-            return sum(weights) - 1
+    def equality_constraint(weights):
+        return sum(weights) - 1
 
-        ensemble = WeightedEnsemble(
-            opt_func=minimize,
-            base_path=PREDICTION_PATH,
-            cutoff=.385,
-            constraints={'type':'eq', 'fun': equality_constraint}
-        )
-        ensemble.ensemble_predictions()
+    ensemble = WeightedEnsemble(
+        opt_func=minimize,
+        base_path=PREDICTION_PATH,
+        cutoff=.385,
+        constraints={'type':'eq', 'fun': equality_constraint}
+    )
+    ensemble.ensemble_predictions()
 
     '''
 

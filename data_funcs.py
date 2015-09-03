@@ -108,6 +108,34 @@ def data_v7(pca_components=100):
     return X_train, y_train, X_test
 
 
+def data_v8():
+    X, y_train = load_data()
+    category_cols = [col for col in X.columns if X[col].dtype == 'O']
+    for col in category_cols:
+        X[col] = encode_with_observation_counts(X[col])
+
+    poly_feats = PolynomialFeatures(include_bias=False)
+    X = pd.DataFrame(poly_feats.fit_transform(X), index=X.index)
+    X.columns = ['poly_feat_' + str(i) for i in range(X.shape[1])]
+
+    is_train_obs = X.index.get_level_values('obs_type') == 'train'
+    X_train, X_test = X[is_train_obs], X[~is_train_obs]
+    return X_train, y_train, X_test
+
+
+def data_v9():
+    X, y_train = load_data()
+    X = pd.get_dummies(X)
+
+    poly_feats = PolynomialFeatures(include_bias=False)
+    X = pd.DataFrame(poly_feats.fit_transform(X), index=X.index)
+    X.columns = ['poly_feat_' + str(i) for i in range(X.shape[1])]
+
+    is_train_obs = X.index.get_level_values('obs_type') == 'train'
+    X_train, X_test = X[is_train_obs], X[~is_train_obs]
+    return X_train, y_train, X_test
+
+
 def stacker_data_v1(cutoff):
     X, y_train = load_data()
     oof_predictions, lb_predictions, oof_ginis = load_predictions_with_cutoff(PREDICTION_PATH, cutoff)
